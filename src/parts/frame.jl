@@ -1,10 +1,4 @@
-abstract type AbstractFrame end
-
-mutable struct PointFrame <: AbstractFrame
-    origin :: SVector{3}
-end
-
-mutable struct EulerParameterFrame <: AbstractFrame
-    origin :: SVector{3}
-    euler_parameters :: SVector{4}
+mutable struct EulerParameterFrame
+    origin :: SVector{3, Float64}
+    euler_parameters :: SVector{4, Float64}
 end
