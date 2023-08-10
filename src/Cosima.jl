@@ -5,6 +5,8 @@ using LinearAlgebra
 
 export EulerParameterFrame
 
+include("helpers/matrix.jl")
+
 include("parts/frame.jl")
 
 include("parts/rigid.jl")
