@@ -27,10 +27,6 @@ function last_body_idx(bodies::Bodies)
         qi = bodies.r_bodies[end].qi[end]
         hi = bodies.r_bodies[end].hi[end]
     end
-    if !isempty(bodies.f_bodies)
-        qi = max(qi, bodies.f_bodies[end].qi[end])
-        hi = max(hi, bodies.f_bodies[end].hi[end])
-    end
     return (qi, hi)
 end
 
