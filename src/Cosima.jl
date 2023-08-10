@@ -6,4 +6,6 @@ export EulerParameterFrame
 
 include("parts/frame.jl")
 
+include("parts/rigid.jl")
+
 end
