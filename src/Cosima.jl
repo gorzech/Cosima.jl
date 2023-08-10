@@ -12,4 +12,8 @@ include("parts/frame.jl")
 include("parts/rigid.jl")
 export RBody!, mass, Bodies
 
+include("interactions/forces.jl")
+
+include("interactions/joints.jl")
+
 end
