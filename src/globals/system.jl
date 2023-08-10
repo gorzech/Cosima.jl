@@ -184,3 +184,16 @@ function ode!(du, u, p::OdeMbs, t)
     du[p.mbs.nq+1:end] .= p.AccLambda[1:p.mbs.nh]
     nothing
 end
+
+function acc_lambda_dae_index1!(p::OdeMbs, t)
+    p.M .= 0.0 # clear the remaining due to factorization
+    mass_upper!(p.M, p.mbs)
+    force!(p.Rhs, t, p.mbs)
+    if p.mbs.nconstr > 0
+        constraints!(p.C, p.Cq, p.C′, p.G, p.mbs)
+        p.M[1:p.mbs.nh, p.mbs.nh+1:p.mbs.nh+p.mbs.nconstr] .= p.Cq'
+        p.Rhs[p.mbs.nh+1:end] .= p.G .- p.mbs.baumg_params[1] .* p.C′ .- p.mbs.baumg_params[2] .* p.C
+    end
+    bk = bunchkaufman!(Symmetric(p.M, :U))
+    ldiv!(p.AccLambda, bk, p.Rhs)
+end

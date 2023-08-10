@@ -106,6 +106,6 @@ end
 function point_global_to_local(b::RBody, point)
     r = b.q[1:3]
     A = rot(b.q[4:end])
-    return (Vector(A' * (point - r)), zeros(0, 0))
+    return Vector(A' * (point - r))
 end
 

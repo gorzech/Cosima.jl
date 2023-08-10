@@ -15,10 +15,9 @@ function JointPoint(body_i, body_j, location)
     JointPoint(v_i, v_j, body_i, body_j)
 end
 
-function point_body_constr(b::RBody, v::Vector{Float64})
+function point_body_constr(b::RBody, s_i::Vector{Float64})
     A_i = rot(b.q[4:7])
     om_s = skew(b.h[4:6])
-    s_i = v[1]
     c = b.q[1:3] + A_i * s_i
     c_q = [Matrix(I, 3, 3) -A_i * skew(s_i)]
     g = -A_i * om_s * om_s * s_i
