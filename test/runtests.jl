@@ -1,5 +1,5 @@
 using Cosima
-import Cosima: approximate_jacobian, q_mul, rot
+import Cosima: approximate_jacobian, q_mul, rot, q_axis, set_body_coordinates!
 using Test
 using LinearAlgebra
 using StaticArrays

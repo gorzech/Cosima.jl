@@ -87,7 +87,7 @@ end
 
 nc(::JointPerpend1) = 1
 
-function JointPerpend1(body_i, body_j, v_i, v_j, location = zeros(3))
+function JointPerpend1(body_i, body_j, v_i, v_j)
     v_i = normalize(v_i)
     v_j = normalize(v_j)
     if v_i' * v_j > 1e-5
@@ -106,7 +106,7 @@ function JointPerpend1(body_i, body_j, v_i, v_j, location = zeros(3))
     )
 end
 
-function body_vector_deriv(b::T, v_local) where {T<:RBody}
+function body_vector_deriv(b::RBody, v_local)
     om = b.h[4:6]
     om_s = skew(om)
     Ai = rot(b.q[4:7])

@@ -1,3 +1,5 @@
+@enum axis x = 1 y = 2 z = 3
+
 skew(x) = SA[0.0 -x[3] x[2]; x[3] 0.0 -x[1]; -x[2] x[1] 0.0]
 
 gep(p) = SA[
@@ -14,6 +16,22 @@ eep(p) = SA[
 
 # ROT returns 3x3 rotation matrix for a vector of Euler parameters"""
 rot(p) = eep(p) * gep(p)'
+
+function q_axis(angle::Float64, around = axis::x)
+    """Q_AXIS Quaternions that rotate by alpha (in RAD) around axis ('x', 'y', or 'z')"""
+    p = [cos(angle / 2), 0, 0, 0]
+    sa2 = sin(angle / 2)
+    if around === x
+        p[2] = sa2
+    elseif around === y
+        p[3] = sa2
+    elseif around === z
+        p[4] = sa2
+    else
+        throw(ArgumentError("Wrong axis specification in call to q_axis"))
+    end
+    return p
+end
 
 function q_mul(p1, p2)
     """Multiplication of quaternions. For rotational quat. rotation p2
