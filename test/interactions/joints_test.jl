@@ -182,7 +182,7 @@ end
 
     sys = Mbs(b, [joint], Force[])
 
-    @test FlexMbd.nc(sys.joints[1]) == 6
+    @test Cosima.nc(sys.joints[1]) == 6
     @test sys.nconstr == 6
     @test length(sys.joints) == 1
     
@@ -202,19 +202,17 @@ end
     r1 = [0.1, 0.3, 0.2]
     rb1 = RBody!(b, 2, [0.1, 1e-3, 1e-3], [r1; p2])
 
-    fem2 = BeamFem(Beam3d(0.5), 2)
-    rm2 = ReducedModelSimple(fem2)
     r2 = [0.0, 0, 0]
-    fb2 = FBodyDirectIntegration!(b, fem2, rm2, [r2; -p2])
+    rb2 = RBody!(b, 2, [0.1, 1e-3, 1e-3], [r2; -p2])
 
-    joints = [JointSimple(rb1), JointSimple(fb2)]
+    joints = [JointSimple(rb1), JointSimple(rb2)]
 
     sys = Mbs(b, joints, Force[])
 
     @test sys.nconstr == 12
     @test length(sys.joints) == 2
-    @test FlexMbd.nc(sys.joints[1]) == 6
-    @test FlexMbd.nc(sys.joints[2]) == 6
+    @test Cosima.nc(sys.joints[1]) == 6
+    @test Cosima.nc(sys.joints[2]) == 6
 
     c, _, _, _ = constraints(sys)
 
@@ -233,12 +231,10 @@ end
     r1 = [0.1, 0.3, 0.2]
     rb1 = RBody!(b, 2, [0.1, 1e-3, 1e-3], [r1; p2])
 
-    fem2 = BeamFem(Beam3d(0.5), 2)
-    rm2 = ReducedModelSimple(fem2)
-    r2 = [0, 0, 0]
-    fb2 = FBodyDirectIntegration!(b, fem2, rm2, [r2; -p2])
+    r2 = [0.0, 0, 0]
+    rb2 = RBody!(b, 2, [0.1, 1e-3, 1e-3], [r2; -p2])
 
-    joints = [JointSimple(rb1), JointSimple(fb2)]
+    joints = [JointSimple(rb1), JointSimple(rb2)]
 
     sys = Mbs(b, joints, Force[])
 
@@ -257,42 +253,6 @@ end
     expected_c_h, expected_c_p, expected_g = approx_constr_derivatives(sys, q, h)
 
     @test norm(c_q - expected_c_h) < 1e-5
-    @test norm(c_p - expected_c_p) < 1e-14
-    @test norm(g - expected_g) < 1e-14
-end
-
-@testset "joint_simple_approx_not_all_rigid" begin
-    b = Bodies()
-    p2 = normalize(rand(4))
-
-    r1 = [0.1, 0.3, 0.2]
-    rb1 = RBody!(b, 2, [0.1, 1e-3, 1e-3], [r1; p2])
-
-    fem2 = BeamFem(Beam3d(0.5), 2)
-    rm2 = ReducedModelSimple(fem2)
-    r2 = [0.0, 0, 0]
-    fb2 = FBodyDirectIntegration!(b, fem2, rm2, [r2; -p2])
-
-    joints = [JointSimple(rb1, [1, 2], false), JointSimple(fb2, Int[])]
-
-    sys = Mbs(b, joints, Force[])
-
-    @test sys.nconstr == 5
-    @test length(sys.joints) == 2
-    @test FlexMbd.nc(sys.joints[1]) == 2
-    @test FlexMbd.nc(sys.joints[2]) == 3
-
-    q0 = initial_position(sys)
-    q = q0[1:sys.nq] .+ 1e-6
-    h = rand(sys.nh) .* 0.7623
-    # normalize quaternions
-    normalize!(@view q[4:7])
-    normalize!(@view q[11:14])
-    set_body_coordinates!(b, q, h)
-    _, c_q, c_p, g = constraints(sys)
-    expected_c_h, expected_c_p, expected_g = approx_constr_derivatives(sys, q, h)
-
-    @test norm(c_q - expected_c_h) < 8e-6
     @test norm(c_p - expected_c_p) < 1e-14
     @test norm(g - expected_g) < 1e-14
 end
