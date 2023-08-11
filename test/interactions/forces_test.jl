@@ -46,8 +46,8 @@ end
     joints = [
         JointSimple(ground),  # Fix the ground
         JointPoint(ground, horizontal_beam, s_rot),
-        JointPerpend1(ground, horizontal_beam, rot_axis, [1, 0, 0], s_rot),
-        JointPerpend1(ground, horizontal_beam, rot_axis, [0, 1, 0], s_rot),
+        JointPerpend1(ground, horizontal_beam, rot_axis, [1, 0, 0]),
+        JointPerpend1(ground, horizontal_beam, rot_axis, [0, 1, 0]),
     ]
 
     # Add equivalent torque

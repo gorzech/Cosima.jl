@@ -44,7 +44,7 @@ end
 
 nc(j::JointSimple) = length(j.qi)
 
-function JointSimple(body, position_idx = [1, 2, 3], fix_rotation = true)
+function JointSimple(body, position_idx=[1, 2, 3], fix_rotation=true)
     @assert length(position_idx) <= 3
     @assert all(position_idx .>= 1)
     @assert all(position_idx .<= 3)
@@ -83,28 +83,28 @@ struct JointPerpend1{T1<:Body,T2<:Body} <: Joint
     body_j::T2
     v_i::SVector{3,Float64}
     v_j::SVector{3,Float64}
+
+    function JointPerpend1(body_i, body_j, v_i, v_j)
+        v_i = normalize(v_i)
+        v_j = normalize(v_j)
+        if v_i' * v_j > 1e-5
+            throw(
+                ArgumentError(
+                    "Vectors seems not to be perpendicular in JointPerpend1 constructor.",
+                ),
+            )
+        end
+
+        new{typeof(body_i), typeof(body_j)}(
+            body_i,
+            body_j,
+            rot(body_i.q0[4:7])' * v_i, # global to local
+            rot(body_j.q0[4:7])' * v_j,
+        )
+    end
 end
 
 nc(::JointPerpend1) = 1
-
-function JointPerpend1(body_i, body_j, v_i, v_j)
-    v_i = normalize(v_i)
-    v_j = normalize(v_j)
-    if v_i' * v_j > 1e-5
-        throw(
-            ArgumentError(
-                "Vectors seems not to be perpendicular in JointPerpend1 constructor.",
-            ),
-        )
-    end
-
-    JointPerpend1(
-        body_i,
-        body_j,
-        rot(body_i.q0[4:7])' * v_i, # global to local
-        rot(body_j.q0[4:7])' * v_j,
-    )
-end
 
 function body_vector_deriv(b::RBody, v_local)
     om = b.h[4:6]
