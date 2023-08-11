@@ -17,6 +17,36 @@ eep(p) = SA[
 # ROT returns 3x3 rotation matrix for a vector of Euler parameters"""
 rot(p) = eep(p) * gep(p)'
 
+function rot_axis(angle, around::axis = x)
+    """ROTAXIS rotate by an angle (in RAD) around axis ('x', 'y', or 'z')"""
+    ca = cos(angle)
+    sa = sin(angle)
+    res = zeros(3, 3)
+
+    if around === x
+        res[1, 1] = 1
+        res[2, 2] = ca
+        res[3, 3] = ca
+        res[2, 3] = -sa
+        res[3, 2] = sa
+    elseif around === y
+        res[2, 2] = 1
+        res[1, 1] = ca
+        res[3, 3] = ca
+        res[1, 3] = sa
+        res[3, 1] = -sa
+    elseif around === z
+        res[3, 3] = 1
+        res[1, 1] = ca
+        res[1, 2] = -sa
+        res[2, 1] = sa
+        res[2, 2] = ca
+    else
+        throw(ArgumentError("Wrong axis specification in call to rot_axis"))
+    end
+    return res
+end
+
 function q_axis(angle::Float64, around = axis::x)
     """Q_AXIS Quaternions that rotate by alpha (in RAD) around axis ('x', 'y', or 'z')"""
     p = [cos(angle / 2), 0, 0, 0]
