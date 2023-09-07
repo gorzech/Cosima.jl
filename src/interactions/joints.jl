@@ -16,12 +16,12 @@ function JointPoint(body_i, body_j, location)
 end
 
 function point_body_constr(b::RBody, s_i::Vector{Float64})
-    A_i = rot(b.q[4:7])
-    om_s = skew(b.h[4:6])
-    c = b.q[1:3] + A_i * s_i
+    A_i = rot(b.node.q[4:7])
+    om_s = skew(b.node.h[4:6])
+    c = b.node.q[1:3] + A_i * s_i
     c_q = [Matrix(I, 3, 3) -A_i * skew(s_i)]
     g = -A_i * om_s * om_s * s_i
-    c_p = c_q * b.h
+    c_p = c_q * b.node.h
     return (c, c_q, c_p, g)
 end
 
@@ -31,8 +31,8 @@ function constraints!(c, c_q, c_p, g, j::JointPoint)
     c .= c_i - c_j
     c_p .= c_p_i - c_p_j
     g .= g_i - g_j
-    c_q[:, j.body_i.hi] = c_q_i
-    c_q[:, j.body_j.hi] = -c_q_j
+    c_q[:, j.body_i.node.hi] = c_q_i
+    c_q[:, j.body_j.node.hi] = -c_q_j
 end
 
 struct JointSimple{T<:Body} <: Joint
@@ -49,7 +49,7 @@ function JointSimple(body, position_idx=[1, 2, 3], fix_rotation=true)
     @assert all(position_idx .>= 1)
     @assert all(position_idx .<= 3)
     if fix_rotation
-        G0_2 = 0.5 * gep(body.q0[4:7])
+        G0_2 = 0.5 * gep(body.node.q0[4:7])
         G0_2 = Matrix(G0_2[:, 2:end]') # To remove adjoint property
         qi = [position_idx; 5; 6; 7]
         hi = [position_idx; 4; 5; 6]
@@ -63,18 +63,18 @@ end
 
 function constraints!(c, c_q, c_p, _, j::JointSimple)
     b = j.body
-    c .= b.q[j.qi] .- b.q0[j.qi]
+    c .= b.node.q[j.qi] .- b.node.q0[j.qi]
     # g is equal to zero
     if isempty(j.G0_2) # only tranlational part
         ncr = nc(j)
-        c_q[:, b.hi[j.hi]] .= Matrix(I, ncr, ncr)
-        c_p .= b.h[j.hi]
+        c_q[:, b.node.hi[j.hi]] .= Matrix(I, ncr, ncr)
+        c_p .= b.node.h[j.hi]
     else
         ncr = nc(j) - 3
-        c_q[1:ncr, b.hi[j.hi[1:ncr]]] .= Matrix(I, ncr, ncr)
-        c_q[ncr+1:end, b.hi[j.hi[ncr+1:end]]] .= j.G0_2
-        c_p[1:ncr] .= b.h[j.hi[1:ncr]]
-        c_p[ncr+1:end] .= j.G0_2 * b.h[j.hi[ncr+1:end]]
+        c_q[1:ncr, b.node.hi[j.hi[1:ncr]]] .= Matrix(I, ncr, ncr)
+        c_q[ncr+1:end, b.node.hi[j.hi[ncr+1:end]]] .= j.G0_2
+        c_p[1:ncr] .= b.node.h[j.hi[1:ncr]]
+        c_p[ncr+1:end] .= j.G0_2 * b.node.h[j.hi[ncr+1:end]]
     end
 end
 
@@ -98,8 +98,8 @@ struct JointPerpend1{T1<:Body,T2<:Body} <: Joint
         new{typeof(body_i), typeof(body_j)}(
             body_i,
             body_j,
-            rot(body_i.q0[4:7])' * v_i, # global to local
-            rot(body_j.q0[4:7])' * v_j,
+            rot(body_i.node.q0[4:7])' * v_i, # global to local
+            rot(body_j.node.q0[4:7])' * v_j,
         )
     end
 end
@@ -107,9 +107,9 @@ end
 nc(::JointPerpend1) = 1
 
 function body_vector_deriv(b::RBody, v_local)
-    om = b.h[4:6]
+    om = b.node.h[4:6]
     om_s = skew(om)
-    Ai = rot(b.q[4:7])
+    Ai = rot(b.node.q[4:7])
     vi = Ai * v_local
     cq_h = -Ai * skew(v_local)
     vi_p = cq_h * om
@@ -125,7 +125,7 @@ function constraints!(c, c_q, c_p, g, j::JointPerpend1)
     c_p .= v_i' * v_j_p + v_j' * v_i_p
     g .= -v_i' * v_j_b_g - v_j' * v_i_b_g - 2 * (v_i_p' * v_j_p)
 
-    c_q[:, j.body_i.hi[4:end]] .= v_j' * cq_i
-    c_q[:, j.body_j.hi[4:end]] .= v_i' * cq_j
+    c_q[:, j.body_i.node.hi[4:end]] .= v_j' * cq_i
+    c_q[:, j.body_j.node.hi[4:end]] .= v_i' * cq_j
     nothing
 end

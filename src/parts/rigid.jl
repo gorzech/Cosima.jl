@@ -1,17 +1,25 @@
 abstract type Body end
 
-struct RBody <: Body
-    nq::Int
-    nh::Int
+struct RBodyNode
     q0::SVector{7,Float64}
     h0::SVector{6,Float64}
     q::MVector{7,Float64}
     h::MVector{6,Float64}
     qi::UnitRange{Int}
     hi::UnitRange{Int}
+end
+
+nq(::RBodyNode) = 7
+nh(::RBodyNode) = 6
+
+struct RBody <: Body
+    node::RBodyNode
     mass::Float64
     Ic::SMatrix{3,3,Float64}
 end
+
+nq(b::RBody) = nq(b.node)
+nh(b::RBody) = nh(b.node)
 
 struct Bodies
     r_bodies::Vector{RBody}
@@ -24,31 +32,31 @@ end
 function last_body_idx(bodies::Bodies)
     qi, hi = 0, 0
     if !isempty(bodies.r_bodies)
-        qi = bodies.r_bodies[end].qi[end]
-        hi = bodies.r_bodies[end].hi[end]
+        qi = bodies.r_bodies[end].node.qi[end]
+        hi = bodies.r_bodies[end].node.hi[end]
     end
     return (qi, hi)
 end
 
 function set_body_coordinates!(b::Body, q)
-    b.q .= q
+    b.node.q .= q
 end
 
 function set_body_coordinates!(b::Body, q, h)
-    b.q .= q
-    b.h .= h
+    b.node.q .= q
+    b.node.h .= h
 end
 
 function set_body_coordinates!(b::Bodies, q)
     for bi in b.r_bodies
-        bi.q .= q[bi.qi]
+        bi.node.q .= q[bi.node.qi]
     end
 end
 
 function set_body_coordinates!(b::Bodies, q, h)
     for bi in b.r_bodies
-        bi.q .= q[bi.qi]
-        bi.h .= h[bi.hi]
+        bi.node.q .= q[bi.node.qi]
+        bi.node.h .= h[bi.node.hi]
     end
 end
 
@@ -64,7 +72,8 @@ function RBody!(
     @assert size(Ic) == (3, 3) "Wrong size of an inertia matrix"
     @assert all(diag(Ic) .> 0) "Inertia diagonal terms must be positive"
     qi, hi = last_body_idx(bodies)
-    b = RBody(7, 6, q0, h0, copy(q0), copy(h0), qi+1:qi+7, hi+1:hi+6, mass, Ic)
+    node = RBodyNode(q0, h0, copy(q0), copy(h0), qi+1:qi+7, hi+1:hi+6)
+    b = RBody(node, mass, Ic)
     append!(bodies.r_bodies, (b,))
     return b
 end
@@ -90,7 +99,7 @@ function mass_upper!(M, b::RBody)
 end
 
 function mass(b::Body)
-    M = zeros(b.nh, b.nh)
+    M = zeros(nh(b), nh(b))
     mass_upper!(M, b)
     return Symmetric(M, :U)
 end
@@ -100,12 +109,12 @@ function grav(b::RBody, gv)
 end
 
 function quadratic_inertia(b::RBody)
-    return [0.0; 0; 0; cross(b.h[4:end], b.Ic * b.h[4:end])]
+    return [0.0; 0; 0; cross(b.node.h[4:end], b.Ic * b.node.h[4:end])]
 end
 
 function point_global_to_local(b::RBody, point)
-    r = b.q[1:3]
-    A = rot(b.q[4:end])
+    r = b.node.q[1:3]
+    A = rot(b.node.q[4:end])
     return Vector(A' * (point - r))
 end
 

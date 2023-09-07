@@ -52,8 +52,8 @@ end
 
     om1 = rand(3)
     om2 = [0, 1e-2, 0.1234112]
-    bodies.r_bodies[1].h[4:end] .= om1
-    bodies.r_bodies[2].h[4:end] .= om2
+    bodies.r_bodies[1].node.h[4:end] .= om1
+    bodies.r_bodies[2].node.h[4:end] .= om2
 
     sys = Mbs(bodies, Joint[], Force[])
 

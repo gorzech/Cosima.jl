@@ -55,7 +55,7 @@ end
 
 function mass_upper!(M, mbs::Mbs)
     for b in mbs.bodies.r_bodies
-        @views mass_upper!(M[b.hi, b.hi], b)
+        @views mass_upper!(M[b.node.hi, b.node.hi], b)
     end
 end
 
@@ -67,13 +67,13 @@ end
 
 function force!(Q, _, fg::MbsGravForce)
     for b in fg.bodies.r_bodies
-        Q[b.hi] .+= grav(b, fg.gv)
+        Q[b.node.hi] .+= grav(b, fg.gv)
     end
 end
 
 function force!(Q, _, fqi::MbsQuadraticForce)
     for b in fqi.bodies.r_bodies
-        Q[b.hi] .-= quadratic_inertia(b)
+        Q[b.node.hi] .-= quadratic_inertia(b)
     end
 end
 
@@ -118,20 +118,20 @@ end
 function initial_position(mbs::Mbs)
     y0 = zeros(mbs.ny)
     for b in mbs.bodies.r_bodies
-        y0[b.qi] .= b.q0
-        y0[mbs.nq.+b.hi] .= b.h0
+        y0[b.node.qi] .= b.node.q0
+        y0[mbs.nq.+b.node.hi] .= b.node.h0
     end
     return y0
 end
 
 function update_body_coordinates!(bodies::Bodies, y, nq)
     function update_coords!(b)
-        p = y[b.qi[4:7]]
+        p = y[b.node.qi[4:7]]
         normalize!(p)
-        b.q[1:3] .= y[b.qi[1:3]]
-        b.q[4:7] .= p
-        b.q[8:end] .= y[b.qi[8:end]]
-        b.h .= y[nq.+b.hi]
+        b.node.q[1:3] .= y[b.node.qi[1:3]]
+        b.node.q[4:7] .= p
+        b.node.q[8:end] .= y[b.node.qi[8:end]]
+        b.node.h .= y[nq.+b.node.hi]
     end
     for b in bodies.r_bodies
         update_coords!(b)
@@ -141,12 +141,12 @@ end
 function compute_q_dot(qp, y, sys::Mbs)
     nq = sys.nq
     function body_q_dot(b)
-        qp[b.qi[1:3]] .= y[nq.+b.hi[1:3]]
-        om = y[nq.+b.hi[4:6]]
-        p = b.q[4:7]
+        qp[b.node.qi[1:3]] .= y[nq.+b.node.hi[1:3]]
+        om = y[nq.+b.node.hi[4:6]]
+        p = b.node.q[4:7]
         L = gep(p)
-        qp[b.qi[4:7]] .= 0.5 .* (L' * om) # p_dot
-        qp[b.qi[8:end]] .= y[nq.+b.hi[7:end]]
+        qp[b.node.qi[4:7]] .= 0.5 .* (L' * om) # p_dot
+        qp[b.node.qi[8:end]] .= y[nq.+b.node.hi[7:end]]
     end
     for b in sys.bodies.r_bodies
         body_q_dot(b)

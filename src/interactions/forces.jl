@@ -13,15 +13,15 @@ end
 
 function force!(Q, t, f::ForceTorque{RBody})
     T = f.torque(t)
-    pp_i = f.body.q[4:7]
+    pp_i = f.body.node.q[4:7]
     A_i = rot(pp_i)
     T_i = A_i' * T 
 
-    Q[f.body.hi[4:end]] .+= T_i
+    Q[f.body.node.hi[4:end]] .+= T_i
 end
 
 function force(t, f::ForceTorque{<:Body})
-    Q = empty(f.body.nh)
+    Q = empty(nh(f.body))
     force!(Q, t, f)
     return Q
 end

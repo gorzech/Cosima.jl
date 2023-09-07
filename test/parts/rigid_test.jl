@@ -33,7 +33,7 @@ end
     b = RBody!(bodies, 3.2, Ic)
 
     om = rand(3)
-    bodies.r_bodies[1].h[4:end] .= om
+    bodies.r_bodies[1].node.h[4:end] .= om
 
     expected_b = [zeros(3); Cosima.skew(om) * Ic * om]
 

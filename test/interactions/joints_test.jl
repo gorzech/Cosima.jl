@@ -3,7 +3,7 @@ function approx_constr_derivatives(sys, q, h)
     """Helper test function to approximate contraint derivatives"""
     function normalize_Euler_params(sys)
         for b in sys.bodies.r_bodies
-            normalize!(@view b.q[4:7])
+            normalize!(@view b.node.q[4:7])
         end
         nothing
     end
@@ -39,10 +39,10 @@ function approx_constr_derivatives(sys, q, h)
     cq_qp_dq = approximate_jacobian(gamma_function, q)
 
     function transf_q_h!(body, q, A_q, A_h)
-        A_h[:, body.hi[1:3]] .= A_q[:, body.qi[1:3]]
-        LiT = Cosima.gep(q[body.qi[4:7]])'
-        A_h[:, body.hi[4:6]] .= 0.5 .* A_q[:, body.qi[4:7]] * LiT
-        A_h[:, body.hi[7:end]] .= A_q[:, body.qi[8:end]]
+        A_h[:, body.node.hi[1:3]] .= A_q[:, body.node.qi[1:3]]
+        LiT = Cosima.gep(q[body.node.qi[4:7]])'
+        A_h[:, body.node.hi[4:6]] .= 0.5 .* A_q[:, body.node.qi[4:7]] * LiT
+        A_h[:, body.node.hi[7:end]] .= A_q[:, body.node.qi[8:end]]
     end
 
     c_h = zeros(size(c_q, 1), length(h))
@@ -157,7 +157,7 @@ end
     q = y0[1:sys.nq] + rand(sys.nq) * 1e-2
     # normalize quaternions
     for b in sys.bodies.r_bodies
-        normalize!(@view q[b.qi[4:7]])
+        normalize!(@view q[b.node.qi[4:7]])
     end
     set_body_coordinates!(b, q, h)
 
@@ -219,7 +219,7 @@ end
     @test length(c) == 12
     @test norm(c) < 1e-16
 
-    rb1.q[2] = 0.0
+    rb1.node.q[2] = 0.0
     c, _, _, _ = constraints(sys)
     @test abs(norm(c) - 0.3) < 1e-16
 end
@@ -349,7 +349,7 @@ end
     q = y0[1:sys.nq] .+ rand(sys.nq) * 1e-2
     # normalize quaternions
     for b in sys.bodies.r_bodies
-        normalize!(@view q[b.qi[4:7]])
+        normalize!(@view q[b.node.qi[4:7]])
     end
     set_body_coordinates!(b, q, h)
 
