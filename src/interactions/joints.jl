@@ -1,10 +1,10 @@
 abstract type Joint end
 
-struct JointPoint{T1<:Body,T2<:Body} <: Joint
+struct JointPoint{N1<:Node,N2<:Node} <: Joint
     v_i::Vector{Float64}
     v_j::Vector{Float64}
-    body_i::T1
-    body_j::T2
+    node_i::N1
+    node_j::N2
 end
 
 nc(::JointPoint) = 3
@@ -12,27 +12,27 @@ nc(::JointPoint) = 3
 function JointPoint(body_i, body_j, location)
     v_i = point_global_to_local(body_i, location)
     v_j = point_global_to_local(body_j, location)
-    JointPoint(v_i, v_j, body_i, body_j)
+    JointPoint(v_i, v_j, body_i.node, body_j.node)
 end
 
-function point_body_constr(b::RBody, s_i::Vector{Float64})
-    A_i = rot(b.node.q[4:7])
-    om_s = skew(b.node.h[4:6])
-    c = b.node.q[1:3] + A_i * s_i
+function point_body_constr(n::RBodyNode, s_i::Vector{Float64})
+    A_i = rot(n.q[4:7])
+    om_s = skew(n.h[4:6])
+    c = n.q[1:3] + A_i * s_i
     c_q = [Matrix(I, 3, 3) -A_i * skew(s_i)]
     g = -A_i * om_s * om_s * s_i
-    c_p = c_q * b.node.h
+    c_p = c_q * n.h
     return (c, c_q, c_p, g)
 end
 
 function constraints!(c, c_q, c_p, g, j::JointPoint)
-    c_i, c_q_i, c_p_i, g_i = point_body_constr(j.body_i, j.v_i)
-    c_j, c_q_j, c_p_j, g_j = point_body_constr(j.body_j, j.v_j)
+    c_i, c_q_i, c_p_i, g_i = point_body_constr(j.node_i, j.v_i)
+    c_j, c_q_j, c_p_j, g_j = point_body_constr(j.node_j, j.v_j)
     c .= c_i - c_j
     c_p .= c_p_i - c_p_j
     g .= g_i - g_j
-    c_q[:, j.body_i.node.hi] = c_q_i
-    c_q[:, j.body_j.node.hi] = -c_q_j
+    c_q[:, j.node_i.hi] = c_q_i
+    c_q[:, j.node_j.hi] = -c_q_j
 end
 
 struct JointSimple{T<:Body} <: Joint
