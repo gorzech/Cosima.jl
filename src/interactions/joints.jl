@@ -35,8 +35,8 @@ function constraints!(c, c_q, c_p, g, j::JointPoint)
     c_q[:, j.node_j.hi] = -c_q_j
 end
 
-struct JointSimple{T<:Body} <: Joint
-    body::T
+struct JointSimple{N<:Node} <: Joint
+    node::N
     qi::Vector{Int}
     hi::Vector{Int}
     G0_2::Matrix{Float64}
@@ -58,29 +58,29 @@ function JointSimple(body, position_idx=[1, 2, 3], fix_rotation=true)
         qi = hi = position_idx
     end
 
-    JointSimple(body, qi, hi, G0_2)
+    JointSimple(body.node, qi, hi, G0_2)
 end
 
 function constraints!(c, c_q, c_p, _, j::JointSimple)
-    b = j.body
-    c .= b.node.q[j.qi] .- b.node.q0[j.qi]
+    n = j.node
+    c .= n.q[j.qi] .- n.q0[j.qi]
     # g is equal to zero
     if isempty(j.G0_2) # only tranlational part
         ncr = nc(j)
-        c_q[:, b.node.hi[j.hi]] .= Matrix(I, ncr, ncr)
-        c_p .= b.node.h[j.hi]
+        c_q[:, n.hi[j.hi]] .= Matrix(I, ncr, ncr)
+        c_p .= n.h[j.hi]
     else
         ncr = nc(j) - 3
-        c_q[1:ncr, b.node.hi[j.hi[1:ncr]]] .= Matrix(I, ncr, ncr)
-        c_q[ncr+1:end, b.node.hi[j.hi[ncr+1:end]]] .= j.G0_2
-        c_p[1:ncr] .= b.node.h[j.hi[1:ncr]]
-        c_p[ncr+1:end] .= j.G0_2 * b.node.h[j.hi[ncr+1:end]]
+        c_q[1:ncr, n.hi[j.hi[1:ncr]]] .= Matrix(I, ncr, ncr)
+        c_q[ncr+1:end, n.hi[j.hi[ncr+1:end]]] .= j.G0_2
+        c_p[1:ncr] .= n.h[j.hi[1:ncr]]
+        c_p[ncr+1:end] .= j.G0_2 * n.h[j.hi[ncr+1:end]]
     end
 end
 
-struct JointPerpend1{T1<:Body,T2<:Body} <: Joint
-    body_i::T1
-    body_j::T2
+struct JointPerpend1{N1<:Node,N2<:Node} <: Joint
+    node_i::N1
+    node_j::N2
     v_i::SVector{3,Float64}
     v_j::SVector{3,Float64}
 
@@ -95,9 +95,9 @@ struct JointPerpend1{T1<:Body,T2<:Body} <: Joint
             )
         end
 
-        new{typeof(body_i), typeof(body_j)}(
-            body_i,
-            body_j,
+        new{typeof(body_i.node), typeof(body_j.node)}(
+            body_i.node,
+            body_j.node,
             rot(body_i.node.q0[4:7])' * v_i, # global to local
             rot(body_j.node.q0[4:7])' * v_j,
         )
@@ -106,10 +106,10 @@ end
 
 nc(::JointPerpend1) = 1
 
-function body_vector_deriv(b::RBody, v_local)
-    om = b.node.h[4:6]
+function body_vector_deriv(n::RBodyNode, v_local)
+    om = n.h[4:6]
     om_s = skew(om)
-    Ai = rot(b.node.q[4:7])
+    Ai = rot(n.q[4:7])
     vi = Ai * v_local
     cq_h = -Ai * skew(v_local)
     vi_p = cq_h * om
@@ -119,13 +119,13 @@ function body_vector_deriv(b::RBody, v_local)
 end
 
 function constraints!(c, c_q, c_p, g, j::JointPerpend1)
-    v_i, cq_i, v_i_p, v_i_b_g = body_vector_deriv(j.body_i, j.v_i)
-    v_j, cq_j, v_j_p, v_j_b_g = body_vector_deriv(j.body_j, j.v_j)
+    v_i, cq_i, v_i_p, v_i_b_g = body_vector_deriv(j.node_i, j.v_i)
+    v_j, cq_j, v_j_p, v_j_b_g = body_vector_deriv(j.node_j, j.v_j)
     c .= v_i' * v_j
     c_p .= v_i' * v_j_p + v_j' * v_i_p
     g .= -v_i' * v_j_b_g - v_j' * v_i_b_g - 2 * (v_i_p' * v_j_p)
 
-    c_q[:, j.body_i.node.hi[4:end]] .= v_j' * cq_i
-    c_q[:, j.body_j.node.hi[4:end]] .= v_i' * cq_j
+    c_q[:, j.node_i.hi[4:end]] .= v_j' * cq_i
+    c_q[:, j.node_j.hi[4:end]] .= v_i' * cq_j
     nothing
 end
