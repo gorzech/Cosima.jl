@@ -8,7 +8,7 @@ export EulerParameterFrame
 include("helpers/matrix.jl")
 export x, y, z
 
-include("parts/frame.jl")
+include("parts/node.jl")
 
 include("parts/rigid.jl")
 export RBody!, mass, Bodies
