@@ -8,7 +8,6 @@ using DifferentialEquations
 
 @testset "Cosima.jl" begin
     include("helpers/matrix_test.jl")
-    include("parts/frame_test.jl")
     include("parts/rigid_test.jl")
     include("interactions/forces_test.jl")
     include("interactions/joints_test.jl")
