@@ -11,3 +11,15 @@ end
 
 nq(::RBodyNode) = 7
 nh(::RBodyNode) = 6
+
+rot(n::RBodyNode) = rot(n.q[4:7])
+
+function point_global_to_local(n::RBodyNode, point)
+    r = n.q[1:3]
+    return global_to_local(n, point - r)
+end
+
+function global_to_local(n::RBodyNode, vector)
+    A = rot(n)
+    return Vector(A' * vector)
+end

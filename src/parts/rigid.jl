@@ -99,10 +99,3 @@ end
 function quadratic_inertia(b::RBody)
     return [0.0; 0; 0; cross(b.node.h[4:end], b.Ic * b.node.h[4:end])]
 end
-
-function point_global_to_local(b::RBody, point)
-    r = b.node.q[1:3]
-    A = rot(b.node.q[4:end])
-    return Vector(A' * (point - r))
-end
-

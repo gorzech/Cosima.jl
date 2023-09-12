@@ -9,14 +9,16 @@ end
 
 nc(::JointPoint) = 3
 
-function JointPoint(body_i, body_j, location)
-    v_i = point_global_to_local(body_i, location)
-    v_j = point_global_to_local(body_j, location)
-    JointPoint(v_i, v_j, body_i.node, body_j.node)
+JointPoint(body_i::Body, body_j::Body, location) = JointPoint(body_i.node, body_j.node, location)
+
+function JointPoint(node_i::Node, node_j::Node, location)
+    v_i = point_global_to_local(node_i, location)
+    v_j = point_global_to_local(node_j, location)
+    JointPoint(v_i, v_j, node_i, node_j)
 end
 
 function point_body_constr(n::RBodyNode, s_i::Vector{Float64})
-    A_i = rot(n.q[4:7])
+    A_i = rot(n)
     om_s = skew(n.h[4:6])
     c = n.q[1:3] + A_i * s_i
     c_q = [Matrix(I, 3, 3) -A_i * skew(s_i)]
@@ -84,7 +86,7 @@ struct JointPerpend1{N1<:Node,N2<:Node} <: Joint
     v_i::SVector{3,Float64}
     v_j::SVector{3,Float64}
 
-    function JointPerpend1(body_i, body_j, v_i, v_j)
+    function JointPerpend1(node_i::Node, node_j::Node, v_i, v_j)
         v_i = normalize(v_i)
         v_j = normalize(v_j)
         if v_i' * v_j > 1e-5
@@ -95,21 +97,23 @@ struct JointPerpend1{N1<:Node,N2<:Node} <: Joint
             )
         end
 
-        new{typeof(body_i.node), typeof(body_j.node)}(
-            body_i.node,
-            body_j.node,
-            rot(body_i.node.q0[4:7])' * v_i, # global to local
-            rot(body_j.node.q0[4:7])' * v_j,
+        new{typeof(node_i),typeof(node_j)}(
+            node_i,
+            node_j,
+            global_to_local(node_i, v_i),
+            global_to_local(node_j, v_j),
         )
     end
 end
+
+JointPerpend1(body_i::Body, body_j::Body, v_i, v_j) = JointPerpend1(body_i.node, body_j.node, v_i, v_j)
 
 nc(::JointPerpend1) = 1
 
 function body_vector_deriv(n::RBodyNode, v_local)
     om = n.h[4:6]
     om_s = skew(om)
-    Ai = rot(n.q[4:7])
+    Ai = rot(n)
     vi = Ai * v_local
     cq_h = -Ai * skew(v_local)
     vi_p = cq_h * om
