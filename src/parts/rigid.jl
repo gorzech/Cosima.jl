@@ -17,6 +17,20 @@ function Bodies()
     Bodies(RBody[])
 end
 
+function update_body_coordinates!(bodies::Bodies, y, nq)
+    function update_coords!(n)
+        p = y[n.qi[4:7]]
+        normalize!(p)
+        n.q[1:3] .= y[n.qi[1:3]]
+        n.q[4:7] .= p
+        n.q[8:end] .= y[n.qi[8:end]]
+        n.h .= y[nq.+n.hi]
+    end
+    for b in bodies.r_bodies
+        update_coords!(b.node)
+    end
+end
+
 function last_body_idx(bodies::Bodies)
     qi, hi = 0, 0
     if !isempty(bodies.r_bodies)

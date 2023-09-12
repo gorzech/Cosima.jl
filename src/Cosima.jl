@@ -20,6 +20,12 @@ include("interactions/joints.jl")
 export Joint, JointSimple, JointPoint, JointPerpend1
 
 include("globals/system.jl")
-export Mbs, force, OdeMbs, initial_position, ode!, constraints
+export Mbs
+
+include("globals/system_equations.jl")
+export force, initial_position, constraints
+
+include("globals/system_ode.jl")
+export OdeMbs, ode!
 
 end
