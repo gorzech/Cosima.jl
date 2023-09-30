@@ -14,7 +14,7 @@ include("parts/rigid.jl")
 export RBody!, mass, Bodies
 
 include("interactions/forces.jl")
-export ForceTorque, Force
+export ForceTorque!, Force
 
 include("interactions/joints.jl")
 export Joint, JointSimple, JointPoint, JointPerpend1
