@@ -11,6 +11,12 @@ function ForceTorque(body::RBody, torque::Function)
     ForceTorque(body, zeros(0, 0), torque)
 end
 
+function ForceTorque!(sys::Mbs, body::RBody, torque::Function)
+    ft = ForceTorque(body, zeros(0, 0), torque)
+    append!(sys.forces, (ft,))
+    return ft
+end
+
 function force!(Q, t, f::ForceTorque{RBody})
     T = f.torque(t)
     pp_i = f.body.node.q[4:7]

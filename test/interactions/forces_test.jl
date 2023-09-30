@@ -1,15 +1,13 @@
 @testset "torque_single_rigid_body" begin    
     r1 = [0.0, 1, -1]
     p1 = normalize(rand(4))
-    b = Bodies()
-    rb1 = RBody!(b, 1.0, ones(3), [r1; p1])
+    sys = Mbs(use_quadratic = false)
+    rb1 = RBody!(sys, 1.0, ones(3), [r1; p1])
     
     # torque_point = np.array([0, 1, -1])
     # s0 = r1 + torque_point
     torque(t) = SA[3, 2 + 2 * t, t ^ 2 - 1]
-    trq1 = ForceTorque(rb1, torque)
-    
-    sys = Mbs(b, Joint[], [trq1], use_quadratic = false)
+    trq1 = ForceTorque!(sys, rb1, torque)
     
     @test length(sys.forces) == 1
     
