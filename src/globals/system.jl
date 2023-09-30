@@ -42,9 +42,44 @@ function Mbs(;
     )
 end
 
+function RBody!(
+    sys::Mbs,
+    mass,
+    Ic::Union{Matrix{Float64},SMatrix{3,3,Float64}},
+    q0,
+    h0,
+)
+    @assert mass > 0 "Mass must be positive"
+    @assert size(Ic) == (3, 3) "Wrong size of an inertia matrix"
+    @assert all(diag(Ic) .> 0) "Inertia diagonal terms must be positive"
+    qi, hi = last_body_idx(sys.bodies)
+    node = RBodyNode(q0, h0, copy(q0), copy(h0), qi+1:qi+7, hi+1:hi+6)
+    b = RBody(node, mass, Ic)
+    addbody!(sys, b)
+    return b
+end
+
+function RBody!(sys::Mbs, mass, Ic::Union{Vector{Float64},SVector{3,Float64}}, q0, h0)
+    RBody!(sys, mass, SMatrix{3,3}(diagm(Ic)), q0, h0)
+end
+
+function RBody!(sys::Mbs, mass, Ic, q0)
+    RBody!(sys, mass, Ic, SVector{7}(q0), SVector{6}(zeros(6)))
+end
+
+function RBody!(sys::Mbs, mass, Ic)
+    RBody!(sys, mass, Ic, SA[0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0], SVector{6}(zeros(6)))
+end
+
 function addbody!(sys::Mbs, body::RBody)
     append!(sys.bodies.r_bodies, (body,))
     sys.nq += nq(body)
     sys.nh += nh(body)
     sys.ny = sys.nq + sys.nh
+end
+
+function ForceTorque!(sys::Mbs, body::RBody, torque::Function)
+    ft = ForceTorque(body, zeros(0, 0), torque)
+    append!(sys.forces, (ft,))
+    return ft
 end
