@@ -29,11 +29,11 @@ end
     # horizontal beam under gravity in y
     # equivalent torque
     torque(_) = [0, 0, m * g * l / 2]
-    b = Bodies()
-    ground = RBody!(b, 1, ones(3))
+    sys = Mbs(gv=[0, -g, 0])
+    ground = RBody!(sys, 1, ones(3))
 
     p0 = normalize([1.0, 2, 3, 0])
-    horizontal_beam = RBody!(b, 
+    horizontal_beam = RBody!(sys, 
         m,
         (m * l ^ 2) * [1 / 1200, 1 / 12, 1 / 12],
         [l / 2; 0.0; 0.0; p0],
@@ -41,17 +41,13 @@ end
 
     s_rot = [0.0, 0, 0]
     rot_axis = [0.0, 0, 1]
-    joints = [
-        JointSimple(ground),  # Fix the ground
-        JointPoint(ground, horizontal_beam, s_rot),
-        JointPerpend1(ground, horizontal_beam, rot_axis, [1, 0, 0]),
-        JointPerpend1(ground, horizontal_beam, rot_axis, [0, 1, 0]),
-    ]
+    JointSimple!(sys, ground)  # Fix the ground
+    JointPoint!(sys, ground, horizontal_beam, s_rot)
+    JointPerpend1!(sys, ground, horizontal_beam, rot_axis, [1, 0, 0])
+    JointPerpend1!(sys, ground, horizontal_beam, rot_axis, [0, 1, 0])
 
     # Add equivalent torque
-    frc = ForceTorque(horizontal_beam, torque)
-
-    sys = Mbs(b, joints, [frc], gv=[0, -g, 0])
+    frc = ForceTorque!(sys, horizontal_beam, torque)
 
     osys = OdeMbs(sys)
     

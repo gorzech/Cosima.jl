@@ -17,7 +17,7 @@ include("interactions/forces.jl")
 export ForceTorque!, Force
 
 include("interactions/joints.jl")
-export Joint, JointSimple, JointPoint, JointPerpend1
+export Joint, JointSimple!, JointPoint!, JointPerpend1!
 
 include("globals/system.jl")
 export Mbs

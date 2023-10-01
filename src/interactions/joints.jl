@@ -9,14 +9,6 @@ end
 
 nc(::JointPoint) = 3
 
-JointPoint(body_i::Body, body_j::Body, location) = JointPoint(body_i.node, body_j.node, location)
-
-function JointPoint(node_i::Node, node_j::Node, location)
-    v_i = point_global_to_local(node_i, location)
-    v_j = point_global_to_local(node_j, location)
-    JointPoint(v_i, v_j, node_i, node_j)
-end
-
 function point_body_constr(n::RBodyNode, s_i::Vector{Float64})
     A_i = rot(n)
     om_s = skew(n.h[4:6])
@@ -45,23 +37,6 @@ struct JointSimple{N<:Node} <: Joint
 end
 
 nc(j::JointSimple) = length(j.qi)
-
-function JointSimple(body, position_idx=[1, 2, 3], fix_rotation=true)
-    @assert length(position_idx) <= 3
-    @assert all(position_idx .>= 1)
-    @assert all(position_idx .<= 3)
-    if fix_rotation
-        G0_2 = 0.5 * gep(body.node.q0[4:7])
-        G0_2 = Matrix(G0_2[:, 2:end]') # To remove adjoint property
-        qi = [position_idx; 5; 6; 7]
-        hi = [position_idx; 4; 5; 6]
-    else
-        G0_2 = zeros(0, 0)
-        qi = hi = position_idx
-    end
-
-    JointSimple(body.node, qi, hi, G0_2)
-end
 
 function constraints!(c, c_q, c_p, _, j::JointSimple)
     n = j.node
@@ -105,8 +80,6 @@ struct JointPerpend1{N1<:Node,N2<:Node} <: Joint
         )
     end
 end
-
-JointPerpend1(body_i::Body, body_j::Body, v_i, v_j) = JointPerpend1(body_i.node, body_j.node, v_i, v_j)
 
 nc(::JointPerpend1) = 1
 
