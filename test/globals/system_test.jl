@@ -2,9 +2,8 @@
     m = 12.1
     R3 = rand(3, 3)
     Ic = 0.5 * (R3 + R3') # make symmetric
-    bodies = Bodies()
-    b = RBody!(bodies, m, Ic)
-    sys = Mbs(bodies, Joint[], Force[])
+    sys = Mbs()
+    b = RBody!(sys, m, Ic)
 
     mass_test = mass(sys)
 
@@ -14,12 +13,10 @@
 end
 
 @testset "mass_three_rigid_bodies" begin
-    bodies = Bodies()
-    RBody!(bodies, 1.0, ones(3) .* 1.2),
-    RBody!(bodies, 2.0, ones(3) .* 3.7),
-    RBody!(bodies, 3.0, ones(3) .* 7.9)
-
-    sys = Mbs(bodies, Joint[], Force[])
+    sys = Mbs()
+    RBody!(sys, 1.0, ones(3) .* 1.2),
+    RBody!(sys, 2.0, ones(3) .* 3.7),
+    RBody!(sys, 3.0, ones(3) .* 7.9)
 
     mass_expected = diagm(repeat([1.0 1.2 2 3.7 3 7.9], 3, 1)[:])
     mass_test = mass(sys)
@@ -33,9 +30,8 @@ end
     m2 = 2
     Ic1 = rand(3, 3)
     Ic2 = [1.2, 0.13, 78e-3]
-    bodies = Bodies()
-    RBody!(bodies, m1, Ic1), RBody!(bodies, m2, Ic2)
-    sys = Mbs(bodies, Joint[], Force[], gv=g, use_quadratic=false)
+    sys = Mbs(gv=g, use_quadratic=false)
+    RBody!(sys, m1, Ic1), RBody!(sys, m2, Ic2)
 
     expected_g = [m1 * g; zeros(3); m2 * g; zeros(3)]
 
@@ -47,15 +43,13 @@ end
 @testset "quadratic_inertia" begin
     Ic1 = rand(3, 3)
     Ic2 = diagm([1.2, 0.13, 78e-3])
-    bodies = Bodies()
-    RBody!(bodies, 3.2, Ic1), RBody!(bodies, 2, Ic2)
+    sys = Mbs()
+    RBody!(sys, 3.2, Ic1), RBody!(sys, 2, Ic2)
 
     om1 = rand(3)
     om2 = [0, 1e-2, 0.1234112]
-    bodies.r_bodies[1].node.h[4:end] .= om1
-    bodies.r_bodies[2].node.h[4:end] .= om2
-
-    sys = Mbs(bodies, Joint[], Force[])
+    sys.bodies.r_bodies[1].node.h[4:end] .= om1
+    sys.bodies.r_bodies[2].node.h[4:end] .= om2
 
     expected_b = [zeros(3); skew(om1) * Ic1 * om1; zeros(3); skew(om2) * Ic2 * om2]
 
@@ -65,12 +59,11 @@ end
 end
 
 @testset "ode_free_fall_rigid_single" begin
-    bodies = Bodies()
-    RBody!(bodies, 1.17893, ones(3), SA[1.0, 0, 2, 1, 0, 0, 0])
-
     g = 9.81
     grav = [0, 0, -g]
-    sys = Mbs(bodies, Joint[], Force[], gv=grav)
+
+    sys = Mbs(gv=grav)
+    RBody!(sys, 1.17893, ones(3), SA[1.0, 0, 2, 1, 0, 0, 0])
 
     y0 = initial_position(sys)
     prob = ODEProblem(ode!, y0, (0.0, 1.0), OdeMbs(sys))
@@ -87,9 +80,8 @@ end
 end
 
 @testset "ode_rotation_const_angular_velocity" begin
-    b = Bodies()
-    RBody!(b, 1.17893, ones(3), [1.0, 0, 2, 1, 0, 0, 0])
-    sys = Mbs(b, Joint[], Force[])
+    sys = Mbs()
+    RBody!(sys, 1.17893, ones(3), [1.0, 0, 2, 1, 0, 0, 0])
 
     y0 = initial_position(sys)
 
@@ -133,13 +125,12 @@ end
     p2 = normalize(rand(4))
     om2_0 = [0.1, 0, 0.3]
 
-    b = Bodies()
-    RBody!(b, 1.17893, ones(3), [1.0, 0, 2, 1, 0, 0, 0])
-    RBody!(b, 289.9872, Ic2, [0.0; 0; 0; p2], [0; 10.0; 0; om2_0])
-
     g = 9.81
     gv = [0, 0, -g]
-    sys = Mbs(b, Joint[], Force[], gv=gv)
+    sys = Mbs(gv=gv)
+    RBody!(sys, 1.17893, ones(3), [1.0, 0, 2, 1, 0, 0, 0])
+    RBody!(sys, 289.9872, Ic2, [0.0; 0; 0; p2], [0; 10.0; 0; om2_0])
+
     y0 = initial_position(sys)
     prob = ODEProblem(ode!, y0, (0.0, 1.0), OdeMbs(sys))
     sol = solve(prob, saveat=1.0, reltol=1e-6, abstol=1e-9)
