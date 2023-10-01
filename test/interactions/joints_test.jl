@@ -67,18 +67,16 @@ function approx_constr_derivatives(sys, q, h)
 end
 
 @testset "joint_point_2_rigid_initial" begin
-    b = Bodies()
+    sys = Mbs()
     r1 = [0.0, 1, 0]
     p1 = normalize(rand(4))
-    rb1 = RBody!(b, 1.0, ones(3), [r1; p1])
+    rb1 = RBody!(sys, 1.0, ones(3), [r1; p1])
     r2 = [0.1, 0.2, 0.7]
     p2 = normalize(rand(4))
-    rb2 = RBody!(b, 1, ones(3), [r2; p2])
+    rb2 = RBody!(sys, 1, ones(3), [r2; p2])
 
     s0 = [9.0, 2, -1]
-    joint = @test_nowarn JointPoint(rb1, rb2, s0)
-
-    sys = Mbs(b, [joint], Force[])
+    joint = @test_nowarn JointPoint!(sys, rb1, rb2, s0)
 
     @test sys.nconstr == 3
     @test length(sys.joints) == 1
@@ -91,32 +89,30 @@ end
 
 
 @testset "joint_point_2_rigid_rotate_translate" begin
-    b = Bodies()
+    sys = Mbs()
     r1 = [0.0, 1, 0]
     p1 = normalize(rand(4))
-    rb1 = RBody!(b, 1.0, ones(3), [r1; p1])
+    rb1 = RBody!(sys, 1.0, ones(3), [r1; p1])
     r2 = [0.1, 0.2, 0.7]
     p2 = normalize(rand(4))
-    rb2 = RBody!(b, 1, ones(3), [r2; p2])
+    rb2 = RBody!(sys, 1, ones(3), [r2; p2])
 
     s0 = [9.0, 2, -1]
-    joint = JointPoint(rb1, rb2, s0)
-
-    sys = Mbs(b, [joint], Force[])
+    joint = JointPoint!(sys, rb1, rb2, s0)
 
     rt = [17.0, -11.2, pi / 4]
     pt = q_axis(1.1324, z)
     At = rot(pt)
 
     q = [At * (r1 + rt); q_mul(pt, p1); At * (r2 + rt); q_mul(pt, p2)]
-    set_body_coordinates!(b, q)
+    set_body_coordinates!(sys.bodies, q)
 
     c, _, _, _ = constraints(sys)
     @test norm(c) < 2e-14
 
     # Now rotate and translate first body
     q = [At * (r1 + rt); q_mul(pt, p1); r2; p2]
-    set_body_coordinates!(b, q)
+    set_body_coordinates!(sys.bodies, q)
 
     # Location of the joint point for the first body:
     st = At * (s0 + rt)
@@ -128,30 +124,26 @@ end
 
 @testset "joint_point_4_bodies_approximate" begin
     Random.seed!(14)
-    b = Bodies()
+    sys = Mbs()
     r1_r = [0.0, 1, 0]
     p1_r = normalize(rand(4))
-    rb1 = RBody!(b, 1, ones(3), [r1_r; p1_r])
+    rb1 = RBody!(sys, 1, ones(3), [r1_r; p1_r])
     r2_r = [0.1, 0.2, 0.7]
     p2_r = normalize(rand(4))
-    rb2 = RBody!(b, 1, ones(3), [r2_r; p2_r])
+    rb2 = RBody!(sys, 1, ones(3), [r2_r; p2_r])
 
-    joints = [
-        JointPoint(
-            rb1, rb2, rand(3)
-        ),  # For rigid bodies this can be anywhere!
-    ]
-
-    sys = Mbs(b, joints, Force[])
+    JointPoint!(
+        sys, rb1, rb2, rand(3)
+    )
 
     @test sys.nconstr == 3
     @test length(sys.joints) == 1
 
     c, _, _, _ = constraints(sys)
     @test length(c) == 3
-    
+
     @test norm(c) < 1e-14
-    
+
     y0 = initial_position(sys)
     h = rand(sys.nh) * 0.7623
     q = y0[1:sys.nq] + rand(sys.nq) * 1e-2
@@ -159,7 +151,7 @@ end
     for b in sys.bodies.r_bodies
         normalize!(@view q[b.node.qi[4:7]])
     end
-    set_body_coordinates!(b, q, h)
+    set_body_coordinates!(sys.bodies, q, h)
 
     _, c_q, c_p, g = constraints(sys)
     expected_c_h, expected_c_p, expected_g = approx_constr_derivatives(sys, q, h)
@@ -170,22 +162,20 @@ end
 end
 
 @testset "joint_simple_rigid_initial" begin
-    b = Bodies()
+    sys = Mbs()
     r1 = [0.0, 0, 0]
     p1 = [1.0, 0, 0, 0]
-    rb1 = RBody!(b, 2, [0.1, 1e-3, 1e-3], [r1; p1])
+    rb1 = RBody!(sys, 2, [0.1, 1e-3, 1e-3], [r1; p1])
 
-    joint = @test_nowarn JointSimple(rb1)
+    joint = @test_nowarn JointSimple!(sys, rb1)
     @test length(joint.qi) == 6
     @test length(joint.hi) == 6
     @test size(joint.G0_2) == (3, 3)
 
-    sys = Mbs(b, [joint], Force[])
-
     @test Cosima.nc(sys.joints[1]) == 6
     @test sys.nconstr == 6
     @test length(sys.joints) == 1
-    
+
     c, c_q, c_p, gam = constraints(sys)
 
     @test length(c) == 6
@@ -196,18 +186,17 @@ end
 end
 
 @testset "joint_simple_two_bodies" begin
-    b = Bodies()
+    sys = Mbs()
     p2 = normalize(rand(4))
 
     r1 = [0.1, 0.3, 0.2]
-    rb1 = RBody!(b, 2, [0.1, 1e-3, 1e-3], [r1; p2])
+    rb1 = RBody!(sys, 2, [0.1, 1e-3, 1e-3], [r1; p2])
 
     r2 = [0.0, 0, 0]
-    rb2 = RBody!(b, 2, [0.1, 1e-3, 1e-3], [r2; -p2])
+    rb2 = RBody!(sys, 2, [0.1, 1e-3, 1e-3], [r2; -p2])
 
-    joints = [JointSimple(rb1), JointSimple(rb2)]
-
-    sys = Mbs(b, joints, Force[])
+    JointSimple!(sys, rb1)
+    JointSimple!(sys, rb2)
 
     @test sys.nconstr == 12
     @test length(sys.joints) == 2
@@ -225,18 +214,17 @@ end
 end
 
 @testset "joint_simple_two_bodies_approx" begin
-    b = Bodies()
+    sys = Mbs()
     p2 = normalize(rand(4))
 
     r1 = [0.1, 0.3, 0.2]
-    rb1 = RBody!(b, 2, [0.1, 1e-3, 1e-3], [r1; p2])
+    rb1 = RBody!(sys, 2, [0.1, 1e-3, 1e-3], [r1; p2])
 
     r2 = [0.0, 0, 0]
-    rb2 = RBody!(b, 2, [0.1, 1e-3, 1e-3], [r2; -p2])
+    rb2 = RBody!(sys, 2, [0.1, 1e-3, 1e-3], [r2; -p2])
 
-    joints = [JointSimple(rb1), JointSimple(rb2)]
-
-    sys = Mbs(b, joints, Force[])
+    JointSimple!(sys, rb1)
+    JointSimple!(sys, rb2)
 
     @test sys.nconstr == 12
     @test length(sys.joints) == 2
@@ -247,8 +235,8 @@ end
     # normalize quaternions
     normalize!(@view q[4:7])
     normalize!(@view q[11:14])
-    set_body_coordinates!(b, q, h)
-    
+    set_body_coordinates!(sys.bodies, q, h)
+
     _, c_q, c_p, g = constraints(sys)
     expected_c_h, expected_c_p, expected_g = approx_constr_derivatives(sys, q, h)
 
@@ -258,19 +246,17 @@ end
 end
 
 @testset "joint_perped1_2_rigid_initial" begin
-    b = Bodies()
+    sys = Mbs()
     r1 = [0.0, 1, 0]
     p1 = normalize(rand(4))
-    rb1 = RBody!(b, 1, ones(3), [r1; p1])
+    rb1 = RBody!(sys, 1, ones(3), [r1; p1])
     r2 = [0.1, 0.2, 0.7]
     p2 = normalize(rand(4))
-    rb2 = RBody!(b, 1, ones(3), [r2; p2])
+    rb2 = RBody!(sys, 1, ones(3), [r2; p2])
 
     v_1 = SA[1.0, 0, 0]
     v_2 = SA[0.0, 1, 0]
-    joint = @test_nowarn JointPerpend1(rb1, rb2, v_1, v_2)
-
-    sys = Mbs(b, [joint], Force[])
+    joint = @test_nowarn JointPerpend1!(sys, rb1, rb2, v_1, v_2)
 
     @test sys.nconstr == 1
     @test length(sys.joints) == 1
@@ -282,32 +268,31 @@ end
 end
 
 @testset "joint_perped1_2_rigid_rotate_translate" begin
-    b = Bodies()
+    sys = Mbs()
     r1 = [0.0, 1, 0]
     p1 = normalize(rand(4))
-    rb1 = RBody!(b, 1, ones(3), [r1; p1])
+    rb1 = RBody!(sys, 1, ones(3), [r1; p1])
     r2 = [0.1, 0.2, 0.7]
     p2 = normalize(rand(4))
-    rb2 = RBody!(b, 1, ones(3), [r2; p2])
+    rb2 = RBody!(sys, 1, ones(3), [r2; p2])
 
     v_1 = [1.0, 0, 0]
     v_2 = [0.0, 1, 0]
-    joint = JointPerpend1(rb1, rb2, v_1, v_2)
-    sys = Mbs(b, [joint], Force[])
+    joint = JointPerpend1!(sys, rb1, rb2, v_1, v_2)
 
     rt = [17, -11.2, pi / 4]
     pt = q_axis(1.1324, z)
     At = rot(pt)
 
     q = [At * (r1 + rt); q_mul(pt, p1); At * (r2 + rt); q_mul(pt, p2)]
-    set_body_coordinates!(b, q)
+    set_body_coordinates!(sys.bodies, q)
 
     c, _, _, _ = constraints(sys)
     @test abs(c[1]) < 1e-14
 
     # Now rotate and translate first body
     q = [At * (r1 + rt); q_mul(pt, p1); r2; p2]
-    set_body_coordinates!(b, q)
+    set_body_coordinates!(sys.bodies, q)
 
     # Location of the joint point for the first body:
     v_1_n = At * v_1
@@ -319,24 +304,19 @@ end
 
 @testset "joint_perped1_4_bodies_approximate" begin
     Random.seed!(856)
-    b = Bodies()
+    sys = Mbs()
     r1_r = [0.0, 1, 0]
     p1_r = normalize(rand(4))
-    rb1 = RBody!(b, 1, ones(3), [r1_r; p1_r])
+    rb1 = RBody!(sys, 1, ones(3), [r1_r; p1_r])
     r2_r = [0.1, 0.2, 0.7]
     p2_r = normalize(rand(4))
-    rb2 = RBody!(b, 1, ones(3), [r2_r; p2_r])
+    rb2 = RBody!(sys, 1, ones(3), [r2_r; p2_r])
 
     v_1 = [1.0, 0, 0]
     v_2 = [0, 0.3, 0.4]
     # For flexible bodies locations are needed
 
-    joints = [
-        JointPerpend1(rb1, rb2, v_1, v_2),  # For rigid bodies this can be anywhere!
-    ]
-
-    sys = Mbs(b, joints, Force[])
-
+    JointPerpend1!(sys, rb1, rb2, v_1, v_2),  # For rigid bodies this can be anywhere!
     @test sys.nconstr == 1
     @test length(sys.joints) == 1
 
@@ -351,7 +331,7 @@ end
     for b in sys.bodies.r_bodies
         normalize!(@view q[b.node.qi[4:7]])
     end
-    set_body_coordinates!(b, q, h)
+    set_body_coordinates!(sys.bodies, q, h)
 
     _, c_q, c_p, g = constraints(sys)
     expected_c_h, expected_c_p, expected_g = approx_constr_derivatives(sys, q, h)

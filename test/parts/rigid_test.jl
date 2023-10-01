@@ -2,8 +2,8 @@
     m = 12.1
     R3 = rand(3, 3)
     Ic = 0.5 * (R3 + R3') # make symmetric
-    bodies = Bodies()
-    b = RBody!(bodies, m, Ic)
+    sys = Mbs()
+    b = RBody!(sys, m, Ic)
 
     mass_test = mass(b)
 
@@ -17,8 +17,8 @@ end
 
     m = 3.2
     Ic = [1.2, 0.13, 78e-3]
-    bodies = Bodies()
-    b = RBody!(bodies, m, Ic)
+    sys = Mbs()
+    b = RBody!(sys, m, Ic)
 
     expected_g = [m * g; zeros(3)]
 
@@ -29,11 +29,11 @@ end
 
 @testset "quadratic_inertia_single_rigid_body" begin
     Ic = diagm([1.2, 0.13, 78e-3])
-    bodies = Bodies()
-    b = RBody!(bodies, 3.2, Ic)
+    sys = Mbs()
+    b = RBody!(sys, 3.2, Ic)
 
     om = rand(3)
-    bodies.r_bodies[1].node.h[4:end] .= om
+    sys.bodies.r_bodies[1].node.h[4:end] .= om
 
     expected_b = [zeros(3); Cosima.skew(om) * Ic * om]
 
